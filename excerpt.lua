@@ -274,7 +274,7 @@ end
 -- zooming and panning
 
 excerpt_zoom = 0.0
-excerpt_zoom_increment_factor = math.pow(2, 0.25)
+excerpt_zoom_increment_factor = 2 ^ 0.25
 
 excerpt_pan_x = 0.0
 excerpt_pan_y = 0.0
