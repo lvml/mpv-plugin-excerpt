@@ -6,8 +6,8 @@ SRC="$3"
 DST="$4"
 
 
-ffmpeg -y -nostdin -ss $BEGIN -i $SRC -t $DURATION -codec:v copy -codec:a copy -codec:d copy \
-  $DST
+ffmpeg -y -nostdin -ss $BEGIN -i "$SRC" -t $DURATION -codec:v copy -codec:a copy -codec:d copy \
+  "$DST"
 
 
 #ffmpeg -ss $BEGIN -i $SRC -to $END -strict -2 ${DST}.mp4
