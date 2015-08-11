@@ -67,13 +67,13 @@ video excerpts to be written.
 
 Then just start mpv like this:
 
-mpv --lua /path/to/excerpt.lua -fs -lua-opts=osc-layout=bottombar yourmediafile.mp4
+mpv --lua /path/to/excerpt.lua -fs --script-opts=osc-layout=bottombar yourmediafile.mp4
 
 Where "yourmediafile.mp4" is of course to be replaced by the file
 you actually want to extract from. You can also provide multiple file names,
 just press the "Return" key once you're done with a file.
 
-The "-fs" and "-lua-opts=osc-layout=bottombar" options are not strictly
+The "-fs" and "--script-opts=osc-layout=bottombar" options are not strictly
 required, but IMHO the OSC interface is thus best suited for navigating 
 through the files.
 
