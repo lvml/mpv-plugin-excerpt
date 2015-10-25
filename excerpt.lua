@@ -104,7 +104,7 @@ function excerpt_write_handler()
 	
 	local fname = ""
 	for i=0,999 do
-		local f = string.format("excerpt_%03d.mkv", i)
+		local f = string.format("excerpt_%03d.mp4", i)
 	
 		-- mp.msg.log("info", "ftable[" .. f .. "] = " .. direntries[f])
 	
@@ -129,11 +129,29 @@ function excerpt_write_handler()
 	mp.msg.log("info", message)
 	mp.osd_message(message, 10)
  
-	-- cmd = "echo ffmpeg -ss " .. excerpt_begin .. " -i file -t " .. duration ..
-	--       " -codec:v copy -codec:a copy output.mkv"
- 
-	mp.commandv("run", "excerpt_copy", excerpt_begin, duration, srcname, fname)
+	local p = {}
+	p["cancellable"] = false
+	p["args"] = {}
+	p["args"][1] = "excerpt_copy"
+	p["args"][2] = tostring(excerpt_begin)
+	p["args"][3] = tostring(duration)
+	p["args"][4] = tostring(srcname)
+	p["args"][5] = tostring(fname)
 	
+	local res = utils.subprocess(p)
+
+	if (res["error"] ~= nil) then
+		local message = "failed to run excerpt_copy\nerror message: " .. res["error"]
+		message = message .. "\nstatus = " .. res["status"] .. "\nstdout = " .. res["stdout"]
+		mp.msg.log("error", message)
+		mp.osd_message(message, 10)
+	else
+		mp.msg.log("info", "excerpt '" .. fname .. "' written.")
+		message = message .. "... done."
+		mp.osd_message(message, 10)
+	end
+ 
+	-- mp.commandv("run", "jimbobexcerpt_copy", excerpt_begin, duration, srcname, fname)
 end
 
 -- assume some plausible frame time until property "fps" is set.
@@ -368,16 +386,9 @@ end
 
 -- things to do whenever a new file was loaded:
 
-function excerpt_on_loaded_late()
-	-- for unknown reasons, mpv would start later than at the very
-	-- first frame with some files - see https://github.com/mpv-player/mpv/issues/1341
-	mp.commandv("seek", -1.0, "relative", "exact")
-end
-
 function excerpt_on_loaded()
 	-- pause play right after loading a file
- 	mp.commandv("frame_step")
-	mp.add_timeout(0.1, excerpt_on_loaded_late)
+  	mp.set_property("pause","yes")
 	
 	excerpt_zoom = 0.0
 	mp.set_property("video-zoom", excerpt_zoom)	
@@ -387,27 +398,7 @@ function excerpt_on_loaded()
 	excerpt_set_pan()
 end
 
-function excerpt_on_loaded_too_early_workaround()
-	-- this function is used as an intermediate to 
-	-- do delay actual execution of stuff that seems
-	-- to not always work correctly when done immediately
-	-- after loading
-  	mp.set_property("pause","yes")
- 	mp.add_timeout(0.1, excerpt_on_loaded)
-end
-
-function excerpt_on_loaded_original()
-	-- without workaround:
- 	mp.set_property("pause","yes")
-	excerpt_zoom = 0.0
-	mp.set_property("video-zoom", excerpt_zoom)	
-
-	excerpt_pan_x = 0.0
-	excerpt_pan_y = 0.0
-	excerpt_set_pan()
-end
-mp.register_event("file-loaded", excerpt_on_loaded_too_early_workaround)
--- mp.register_event("file-loaded", excerpt_on_loaded_original)
+mp.register_event("file-loaded", excerpt_on_loaded)
 
 --
 
