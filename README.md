@@ -104,7 +104,7 @@ press "i" and "o" again to move the marks to the current position.
 Once To actually write the excerpt, press "x".
 The excerpt.lua script will create a filename that does not
 yet exist in your current working directory, files will be
-named "excerpt_000.mkv", "excerpt_001.mkv" etc. by default,
+named "excerpt_000.mp4", "excerpt_001.mp4" etc. by default,
 and no existing files will be overwritten.
 
 The actual extraction work is done by invoking the "extract_copy"
