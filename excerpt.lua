@@ -25,7 +25,7 @@ mp.set_property("options/keep-open","always")
 
 -- alas, the following setting seems to not take effect - needs
 -- to be specified on the command line of mpv, instead:
-mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=-1")
+mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=120000")
 
 
 function excerpt_on_eof()
