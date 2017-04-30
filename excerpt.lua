@@ -85,6 +85,18 @@ end
 
 -- writing
 
+function get_destination_filename()
+        local srcname = mp.get_property_native("path")
+        local filename = mp.get_property_native("filename")
+        local filename_no_ext = mp.get_property_native("filename/no-ext")
+        local ext_length = string.len(filename) - string.len(filename_no_ext)
+
+        return string.sub(srcname, 0, -ext_length) .. "excerpt." ..
+           excerpt_begin .. "-" .. excerpt_end ..
+           string.sub(srcname, -ext_length)
+end
+
+
 function excerpt_write_handler() 
 	if excerpt_begin == excerpt_end then
 		message = "excerpt_write: not writing because begin == end == " .. excerpt_begin
@@ -93,39 +105,14 @@ function excerpt_write_handler()
 	end
  	
 	-- determine file name
-	
-	local cwd = utils.getcwd()
-	local direntries = utils.readdir(cwd)
-	local ftable = {}
-	for i = 1, #direntries do
-		-- mp.msg.log("info", "direntries[" .. i .. "] = " .. direntries[i])
-		ftable[direntries[i]] = 1
-	end 
-	
-	local fname = ""
-	for i=0,999 do
-		local f = string.format("excerpt_%03d.mp4", i)
-	
-		-- mp.msg.log("info", "ftable[" .. f .. "] = " .. direntries[f])
-	
-		if ftable[f] == nil then
-			fname = f
-			break
-		end
- 	end
-	if fname == "" then
-		message = "not writing because all filenames already in use" 
-		mp.osd_message(message, 10)
-		return
-	end
-
-	duration = excerpt_end - excerpt_begin
-	
 	local srcname = mp.get_property_native("path")
+	local dstname = get_destination_filename()
+	
+	duration = excerpt_end - excerpt_begin
 	
 	local message = excerpt_rangemessage()
 	message = message .. "writing excerpt of source file '" .. srcname .. "'\n"
-	message = message .. "to destination file '" .. fname .. "'" 
+	message = message .. "to destination file '" .. dstname .. "'"
 	mp.msg.log("info", message)
 	mp.osd_message(message, 10)
  
@@ -136,7 +123,7 @@ function excerpt_write_handler()
 	p["args"][2] = tostring(excerpt_begin)
 	p["args"][3] = tostring(duration)
 	p["args"][4] = tostring(srcname)
-	p["args"][5] = tostring(fname)
+	p["args"][5] = tostring(dstname)
 	
 	local res = utils.subprocess(p)
 
@@ -146,12 +133,10 @@ function excerpt_write_handler()
 		mp.msg.log("error", message)
 		mp.osd_message(message, 10)
 	else
-		mp.msg.log("info", "excerpt '" .. fname .. "' written.")
+		mp.msg.log("info", "excerpt '" .. dstname .. "' written.")
 		message = message .. "... done."
 		mp.osd_message(message, 10)
 	end
- 
-	-- mp.commandv("run", "jimbobexcerpt_copy", excerpt_begin, duration, srcname, fname)
 end
 
 -- assume some plausible frame time until property "fps" is set.
