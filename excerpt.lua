@@ -9,6 +9,20 @@
 --  $2 = duration, $3 = source file name
 -- (see bottom of this file for all key bindings)
 
+-- script options: Use...
+--
+--   --script-opts=excerpt-source-based-filename=1
+--      to make excerpt.lua use the source filename as
+--      a base for the destination filename for excerpts
+--   --script-opts=excerpt-source-based-extension=1
+--      to make excerpt.lua use the same filname extension
+--      for destination files than that of the source file -
+--      without this option, the extension ".mp4" will be used.
+--      Notice that unlike specified otherwise in "excerpt_copy",
+--      the filename extension will determine the format of the output.
+--
+-- (--script-opts can parse multiple options as comma-separated key-value pairs.)
+
 -- initialization:
 
 utils = require 'mp.utils'
@@ -25,7 +39,7 @@ mp.set_property("options/keep-open","always")
 
 -- alas, the following setting seems to not take effect - needs
 -- to be specified on the command line of mpv, instead:
-mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=120000")
+-- mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=120000")
 
 
 function excerpt_on_eof()
@@ -85,6 +99,68 @@ end
 
 -- writing
 
+function get_destination_filename()
+
+	local sbf = tonumber(mp.get_opt("excerpt-source-based-filename"))
+   if (sbf == nil) then
+		sbf = 0
+	end
+	
+	local sbe = tonumber(mp.get_opt("excerpt-source-based-extension"))
+   if sbe == nil then
+		sbe = 0
+	end
+	
+	local srcname   = mp.get_property_native("filename")
+	local srcnamene = mp.get_property_native("filename/no-ext")
+	
+	local ext_length = string.len(srcname) - string.len(srcnamene)
+	local srcext     = string.sub(srcname, -ext_length)
+	
+	local dstext = ".mp4"
+	if sbe == 1 then
+		-- use same filename extension than input
+		dstext = srcext
+	end
+	
+	local dstname
+
+	if sbf == 1 then
+		dstname = srcnamene .. ".excerpt_" .. excerpt_begin .. "-" .. excerpt_end
+	else
+		-- create a new, unique filename by scanning the current
+		-- directory for non-existence of files named "excerpt_$number.$extension"
+
+		local cwd = utils.getcwd()
+		local direntries = utils.readdir(cwd)
+		local ftable = {}
+		for i = 1, #direntries do
+			-- mp.msg.log("info", "direntries[" .. i .. "] = " .. direntries[i])
+			ftable[direntries[i]] = 1
+		end 
+		
+		local fname = ""
+		for i=0,999 do
+			local f = string.format("excerpt_%03d", i)
+			-- mp.msg.log("info", "ftable[" .. f .. dstext .. "] = " .. direntries[f .. dstext])
+			
+			if ftable[f .. dstext] == nil then
+				fname = f
+				break
+			end
+ 		end
+		if fname == "" then
+			message = "not writing because all filenames already in use" 
+			mp.osd_message(message, 10)
+			return ""
+		end
+		dstname = fname
+	end
+	
+	return dstname .. dstext
+end
+
+
 function excerpt_write_handler() 
 	if excerpt_begin == excerpt_end then
 		message = "excerpt_write: not writing because begin == end == " .. excerpt_begin
@@ -92,40 +168,19 @@ function excerpt_write_handler()
 		return
 	end
  	
-	-- determine file name
-	
-	local cwd = utils.getcwd()
-	local direntries = utils.readdir(cwd)
-	local ftable = {}
-	for i = 1, #direntries do
-		-- mp.msg.log("info", "direntries[" .. i .. "] = " .. direntries[i])
-		ftable[direntries[i]] = 1
-	end 
-	
-	local fname = ""
-	for i=0,999 do
-		local f = string.format("excerpt_%03d.mp4", i)
-	
-		-- mp.msg.log("info", "ftable[" .. f .. "] = " .. direntries[f])
-	
-		if ftable[f] == nil then
-			fname = f
-			break
-		end
- 	end
-	if fname == "" then
-		message = "not writing because all filenames already in use" 
-		mp.osd_message(message, 10)
+	dstname = get_destination_filename()
+	if (dstname == "") then
+		-- file name creation has failed
 		return
 	end
-
+	
 	duration = excerpt_end - excerpt_begin
 	
 	local srcname = mp.get_property_native("path")
 	
 	local message = excerpt_rangemessage()
 	message = message .. "writing excerpt of source file '" .. srcname .. "'\n"
-	message = message .. "to destination file '" .. fname .. "'" 
+	message = message .. "to destination file '" .. dstname .. "'" 
 	mp.msg.log("info", message)
 	mp.osd_message(message, 10)
  
@@ -136,22 +191,21 @@ function excerpt_write_handler()
 	p["args"][2] = tostring(excerpt_begin)
 	p["args"][3] = tostring(duration)
 	p["args"][4] = tostring(srcname)
-	p["args"][5] = tostring(fname)
+	p["args"][5] = tostring(dstname)
 	
 	local res = utils.subprocess(p)
-
+	
 	if (res["error"] ~= nil) then
 		local message = "failed to run excerpt_copy\nerror message: " .. res["error"]
 		message = message .. "\nstatus = " .. res["status"] .. "\nstdout = " .. res["stdout"]
 		mp.msg.log("error", message)
 		mp.osd_message(message, 10)
 	else
-		mp.msg.log("info", "excerpt '" .. fname .. "' written.")
+		mp.msg.log("info", "excerpt '" .. dstname .. "' written.")
 		message = message .. "... done."
 		mp.osd_message(message, 10)
 	end
  
-	-- mp.commandv("run", "jimbobexcerpt_copy", excerpt_begin, duration, srcname, fname)
 end
 
 -- assume some plausible frame time until property "fps" is set.
@@ -184,8 +238,9 @@ function excerpt_seek()
 	
 	if (abs_sa >= 10.0) then
 		-- for seeks above 10 seconds, always use coarse keyframe seek
+		local s = seek_account
 		seek_account = 0.0
-		mp.commandv("seek", seek_account, "relative", "keyframes")
+		mp.commandv("seek", s, "relative+keyframes")
 		return
 	end
 
@@ -194,12 +249,12 @@ function excerpt_seek()
 		local s = seek_account
 		seek_account = 0.0
 		
-		local mode = "exact"
+		local mode = "relative+exact"
 		if seek_keyframe then
-			mode = "keyframes"
+			mode = "relative+keyframes"
 		end
 		
-		mp.commandv("seek", s, "relative", mode)
+		mp.commandv("seek", s, mode)
 		return
 	end
 	
@@ -237,9 +292,18 @@ function check_key_release(kevent)
 		-- key was released, so we should immediately stop to do any seeking
 		seek_account = 0.0
 		
-		-- and do a "zero-seek" to reset mpv's internal frame step counter:
-		mp.commandv("seek", 0.0, "relative", "exact")
-		mp.set_property("pause","yes")
+		-- The "zero-seek" at key-release seems to do more harm than good with recent mpv versions:
+		--  if mpv has not reached the new position from the previously issued seek yet and a relative seek to 0.0 is done, this
+		--  will counter-act the idea of doing a coarse key-frame seek, causing a long wait
+		--  before an image is shown for the new position.
+		-- So for no, we do not perform this "zero-seek".
+		if false then
+		if (not seek_keyframe) then
+			-- and do a "zero-seek" to reset mpv's internal frame step counter:
+			mp.commandv("seek", 0.0, "relative", "exact")
+			mp.set_property("pause","yes")
+		end
+		end
 		return true
 	end
 	return false
@@ -269,7 +333,7 @@ function excerpt_keyframe_forward(kevent)
 	end
 	
 	seek_keyframe = true
-	seek_account = seek_account + 0.1
+	seek_account = seek_account + 0.5
 end
 
 function excerpt_keyframe_back(kevent)
@@ -278,7 +342,7 @@ function excerpt_keyframe_back(kevent)
 	end
 	
 	seek_keyframe = true
-	seek_account = seek_account - 0.1
+	seek_account = seek_account - 0.5
 end
 
 function excerpt_seek_begin_handler() 

@@ -119,6 +119,32 @@ the excerpts in another software (like kdenlive) anyway, don't
 bother with frame-exact extraction and fine tune the in/out positions
 using the post-processing software.
 
+Options:
+========
+
+## Source file name as base for destination file name
+
+If you do not like the default of naming excerpted files "excerpt_000"
+to "excerpt_999" (plus filename extension), but would rather like to
+use the source file name as base file name for your excerpts, you can
+set the script option excerpt-source-based-filename=1 like this:
+
+ mpv --script-opts=excerpt-source-based-filename=1  ...
+ 
+## Source file name extension as the extension for destination file name
+
+If you do not like the default of using ".mp4" as the extension for
+excerpted files, which implies the use of MP4 as the output format
+when using the supplied excerpt_copy script, you can use the script option
+excerpt-source-based-extension=1 like this:
+  
+ mpv --script-opts=excerpt-source-based-extension=1 ...
+
+Notice that using both options described above at the same time
+is possible using comma-separated script options, like this: 
+
+ mpv --script-opts=excerpt-source-based-filename=1,excerpt-source-based-extension=1 ...
+
 
 DISCLAIMER
 ==========
