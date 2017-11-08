@@ -195,9 +195,12 @@ function excerpt_write_handler()
 	
 	local res = utils.subprocess(p)
 	
-	if (res["error"] ~= nil) then
-		local message = "failed to run excerpt_copy\nerror message: " .. res["error"]
-		message = message .. "\nstatus = " .. res["status"] .. "\nstdout = " .. res["stdout"]
+	if (res["status"] ~= 0) then
+		message = message .. "failed!\nfailed to run excerpt_copy - status = " .. res["status"]
+		if (res["error"] ~= nil) then
+			message = message .. ", error message: " .. res["error"]
+		end
+		message = message .. "\nstdout = " .. res["stdout"]
 		mp.msg.log("error", message)
 		mp.osd_message(message, 10)
 	else
@@ -333,7 +336,7 @@ function excerpt_keyframe_forward(kevent)
 	end
 	
 	seek_keyframe = true
-	seek_account = seek_account + 0.5
+	seek_account = seek_account + 0.4
 end
 
 function excerpt_keyframe_back(kevent)
@@ -342,7 +345,7 @@ function excerpt_keyframe_back(kevent)
 	end
 	
 	seek_keyframe = true
-	seek_account = seek_account - 0.5
+	seek_account = seek_account - 0.6
 end
 
 function excerpt_seek_begin_handler() 
