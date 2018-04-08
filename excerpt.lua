@@ -29,7 +29,7 @@ utils = require 'mp.utils'
 
 excerpt_begin = 0.0
 excerpt_end   = mp.get_property_native("length")
-if excerpt_end == nil then
+if excerpt_end == nil or excerpt_end == "none" then
  excerpt_end = 0.0
 end
 
@@ -69,6 +69,9 @@ end
 
 function excerpt_mark_begin_handler() 
 	pt = mp.get_property_native("playback-time")
+	if pt == nil or pt == "none" then
+		pt = 0.0
+	end
  	
 	-- at some later time, setting a/b markers might be used to visualize begin/end
 	-- mp.set_property("ab-loop-a", pt)
@@ -84,6 +87,9 @@ end
 
 function excerpt_mark_end_handler() 
 	pt = mp.get_property_native("playback-time")
+	if pt == nil or pt == "none" then
+		pt = 0.0
+	end
 
 	-- at some later time, setting a/b markers might be used to visualize begin/end
 	-- mp.set_property("ab-loop-b", pt)
